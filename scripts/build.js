@@ -99,12 +99,13 @@ async function buildWorker() {
     mkdirSync(DIST_PATH, { recursive: true });
     writeFileSync('./dist/worker.js', worker, 'utf8');
 
-    const zip = new JSZip();
+    /*const zip = new JSZip();
     zip.file('_worker.js', worker);
     zip.generateAsync({
         type: 'nodebuffer',
         compression: 'DEFLATE'
     }).then(nodebuffer => writeFileSync('./dist/worker.zip', nodebuffer));
+    */
 
     console.log('✅ Done!');
 }
