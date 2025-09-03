@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 localStorage.getItem('darkMode') === 'enabled' && document.body.classList.add('dark-mode');
 
 const form = document.getElementById("configForm");
@@ -17,9 +18,115 @@ const [
 
 const defaultHttpsPorts = [443, 8443, 2053, 2083, 2087, 2096];
 const defaultHttpPorts = [80, 8080, 8880, 2052, 2082, 2086, 2095];
-const ipv6Regex = /^\[(?:(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,7}:|(?:[a-fA-F0-9]{1,4}:){1,6}:[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,5}(?::[a-fA-F0-9]{1,4}){1,2}|(?:[a-fA-F0-9]{1,4}:){1,4}(?::[a-fA-F0-9]{1,4}){1,3}|(?:[a-fA-F0-9]{1,4}:){1,3}(?::[a-fA-F0-9]{1,4}){1,4}|(?:[a-fA-F0-9]{1,4}:){1,2}(?::[a-fA-F0-9]{1,4}){1,5}|[a-fA-F0-9]{1,4}:(?::[a-fA-F0-9]{1,4}){1,6}|:(?::[a-fA-F0-9]{1,4}){1,7})\](?:\/(?:12[0-8]|1[01]?\d|[0-9]?\d))?$/;
-const ipv4Regex = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\/(?:\d|[12]\d|3[0-2]))?$/;
-const domainRegex = /^(?=.{1,253}$)(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)\.)+[a-zA-Z]{2,63}$/;
+const ipv6Regex = /^\[(?:(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,7}:|(?:[a-fA-F0-9]{1,4}:){1,6}:[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,5}(?::[a-fA-F0-9]{1,4}){1,2}|(?:[a-fA-F0-9]{1,4}:){1,4}(?::[a-fA-F0-9]{1,4}){1,3}|(?:[a-fA-F0-9]{1,4}:){1,3}(?::[a-fA-F0-9]{1,4}){1,4}|(?:[a-fA-F0-9]{1,4}:){1,2}(?::[a-fA-F0-9]{1,4}){1,5}|[a-fA-F0-9]{1,4}:(?::[a-fA-F0-9]{1,4}){1,6}|:(?::[a-fA-F0-9]{1,4}){1,7})\](?:\/(?:12[0-8]|1[01]?\d|[0-9]?\d))?/;
+const ipv4Regex = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\/(?:\d|[12]\d|3[0-2]))?/;
+const domainRegex = /^(?=.{1,253}$)(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)\.)+[a-zA-Z]{2,63}/;
+
+// 存储从远程获取的Proxy IPs数据
+let proxyIPsData = [];
+
+async function loadProxyIPs() {
+    const proxyIPsSelect = document.getElementById('proxyIPsSelect');
+    const refreshBtn = document.getElementById('refreshProxyIPs');
+    
+    try {
+        // 添加加载状态
+        refreshBtn.classList.add('fa-spin');
+        
+        const response = await fetch('https://raw.githubusercontent.com/happymy/Pip_Json_DEMO2/refs/heads/main/output.json');
+        const data = await response.json();
+        
+        // 保存数据供后续使用
+        proxyIPsData = data;
+        
+        // 按国家排序
+        const sortedData = data.sort((a, b) => {
+            const countryA = a.location.split(', ').pop();
+            const countryB = b.location.split(', ').pop();
+            return countryA.localeCompare(countryB);
+        });
+        
+        // 清空现有选项（保留默认选项）
+        proxyIPsSelect.innerHTML = '<option value="">-- Select Proxy IPs --</option>';
+        
+        // 按国家分组
+        const groupedIPs = {};
+        sortedData.forEach(item => {
+            const parts = item.location.split(', ');
+            const country = parts[parts.length - 1];
+            
+            if (!groupedIPs[country]) {
+                groupedIPs[country] = [];
+            }
+            groupedIPs[country].push(item);
+        });
+        
+        // 添加分组选项
+        Object.keys(groupedIPs)
+            .sort()
+            .forEach(country => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = country;
+                
+                groupedIPs[country]
+                    .forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.ip;
+                        option.textContent = `${item.ip} (${item.location})`;
+                        optgroup.appendChild(option);
+                    });
+                
+                proxyIPsSelect.appendChild(optgroup);
+            });
+        
+        // 显示下拉框
+        proxyIPsSelect.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Failed to load proxy IPs:', error);
+        proxyIPsSelect.innerHTML = '<option value="">-- Failed to load data --</option>';
+        alert('Failed to load proxy IPs. Please try again.');
+    } finally {
+        // 移除加载状态
+        refreshBtn.classList.remove('fa-spin');
+    }
+}
+
+// 当用户从下拉框选择Proxy IP时的处理函数
+function handleProxyIPSelection() {
+    const proxyIPsSelect = document.getElementById('proxyIPsSelect');
+    const proxyIPsTextarea = document.getElementById('proxyIPs');
+    const selectedValue = proxyIPsSelect.value;
+    
+    if (selectedValue) {
+        const currentIPs = proxyIPsTextarea.value.split('\n').filter(ip => ip.trim() !== '');
+        
+        // 如果IP尚未添加，则添加它
+        if (!currentIPs.includes(selectedValue)) {
+            currentIPs.push(selectedValue);
+            proxyIPsTextarea.value = currentIPs.join('\n');
+            // 自动调整高度
+            proxyIPsTextarea.style.height = 'auto';
+            proxyIPsTextarea.style.height = `${proxyIPsTextarea.scrollHeight}px`;
+            // 触发input事件以启用应用按钮
+            proxyIPsTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        // 重置选择框
+        proxyIPsSelect.value = '';
+    }
+}
+
+// 在页面加载完成后初始化Proxy IPs功能
+document.addEventListener('DOMContentLoaded', function() {
+    const proxyIPsSelect = document.getElementById('proxyIPsSelect');
+    if (proxyIPsSelect) {
+        proxyIPsSelect.addEventListener('change', handleProxyIPSelection);
+    }
+});
+
+// 在页面加载时初始化Proxy IPs功能
+loadProxyIPs();
 
 fetch('/panel/settings')
     .then(async response => response.json())
@@ -507,25 +614,13 @@ function validateSanctionDns() {
     return true;
 }
 
-function parseHostPort(input) {
-    const regex = /^(?<host>\[.*?\]|[^:]+)(?::(?<port>\d+))?$/;
-    const match = input.match(regex);
-    
-    if (!match) return null;
-
-    return {
-        host: match.groups.host,
-        port: match.groups.port ? +match.groups.port : null
-    };
-}
-
 function isValidHostName(value, isHost) {
-    const hostPort = parseHostPort(value.trim());
-    if (!hostPort) return false;
-    const { host, port } = hostPort;
-    if (port && (port > 65535 || port < 1)) return false;
-    if (isHost && !port) return false;
-    return ipv6Regex.test(host) || ipv4Regex.test(host) || domainRegex.test(host);
+    const portRegex = /:(?:6553[0-5]|655[0-2]\d|65[0-4]\d{2}|6[0-4]\d{3}|[1-5]?\d{1,4})$/;
+    const append = isHost ? portRegex.source : '$';
+    const ipv6Reg = new RegExp(ipv6Regex.source + append, 'gm');
+    const ipv4Reg = new RegExp(ipv4Regex.source + append, 'gm');
+    const domainReg = new RegExp(domainRegex.source + append, 'gm');
+    return ipv4Reg.test(value) || ipv6Reg.test(value) || domainReg.test(value);
 }
 
 function validateMultipleHostNames(elements) {
@@ -533,10 +628,10 @@ function validateMultipleHostNames(elements) {
 
     const ips = [];
     elements.forEach(id => ips.push(...getValue(id)));
-    const invalidIPs = ips?.filter(value => !isValidHostName(value));
+    const invalidIPs = ips?.filter(value => value && !isValidHostName(value.trim()));
 
     if (invalidIPs.length) {
-        alert('⛔ Invalid IPs or Domains.\n👉 Please enter each IP/domain in a new line.\n\n' + invalidIPs.map(ip => `⚠️ ${ip}`).join('\n'));
+        alert('⛔ Invalid IPs or Domains.\n👉 Please enter each IP/domain in a new line.\n\n' + invalidIPs.map(ip => '⚠️ ' + ip).join('\n'));
         return false;
     }
 
@@ -544,11 +639,11 @@ function validateMultipleHostNames(elements) {
 }
 
 function validateProxyIPs() {
-    const proxyIPs = document.getElementById('proxyIPs').value?.split('\n').filter(Boolean);
-    const invalidValues = proxyIPs?.filter(value => !isValidHostName(value));
+    const proxyIPs = document.getElementById('proxyIPs').value?.split('\n').filter(Boolean).map(ip => ip.trim());
+    const invalidValues = proxyIPs?.filter(value => !isValidHostName(value) && !isValidHostName(value, true));
 
     if (invalidValues.length) {
-        alert('⛔ Invalid proxy IPs.\n👉 Please enter each IP/domain in a new line.\n\n' + invalidValues.map(ip => `⚠️ ${ip}`).join('\n'));
+        alert('⛔ Invalid proxy IPs.\n👉 Please enter each IP/domain in a new line.\n\n' + invalidValues.map(ip => '⚠️ ' + ip).join('\n'));
         return false;
     }
 
@@ -556,11 +651,12 @@ function validateProxyIPs() {
 }
 
 function validateNAT64Prefixes() {
-    const nat64Prefixes = document.getElementById('nat64Prefixes').value?.split('\n').filter(Boolean).map(prefix => prefix.trim());
-    const invalidValues = nat64Prefixes?.filter(value => !ipv6Regex.test(value));
+    const ipv6Reg = new RegExp('^' + ipv6Regex.source + '$');
+    const nat64Prefixes = document.getElementById('nat64Prefixes').value?.split('\n').filter(Boolean).map(ip => ip.trim());
+    const invalidValues = nat64Prefixes?.filter(value => !ipv6Reg.test(value));
 
     if (invalidValues.length) {
-        alert('⛔ Invalid NAT64 prefix.\n👉 Please enter each prefix in a new line using [].\n\n' + invalidValues.map(ip => `⚠️ ${ip}`).join('\n'));
+        alert('⛔ Invalid NAT64 prefix.\n👉 Please enter each prefix in a new line using [].\n\n' + invalidValues.map(ip => '⚠️ ' + ip).join('\n'));
         return false;
     }
 
@@ -568,11 +664,11 @@ function validateNAT64Prefixes() {
 }
 
 function validateWarpEndpoints() {
-    const warpEndpoints = document.getElementById('warpEndpoints').value?.split('\n').filter(Boolean);
-    const invalidEndpoints = warpEndpoints?.filter(value => !isValidHostName(value, true));
+    const warpEndpoints = document.getElementById('warpEndpoints').value?.split('\n');
+    const invalidEndpoints = warpEndpoints?.filter(value => value && !isValidHostName(value.trim(), true));
 
     if (invalidEndpoints.length) {
-        alert('⛔ Invalid endpoint.\n\n' + invalidEndpoints.map(endpoint => `⚠️ ${endpoint}`).join('\n'));
+        alert('⛔ Invalid endpoint.\n\n' + invalidEndpoints.map(endpoint => '⚠️ ' + endpoint).join('\n'));
         return false;
     }
 
@@ -610,6 +706,7 @@ function validateMinMax() {
 }
 
 function validateChainProxy() {
+
     const chainProxy = document.getElementById('outProxy').value?.trim();
     const isVless = /vless:\/\/[^\s@]+@[^\s:]+:[^\s]+/.test(chainProxy);
     const hasSecurity = /security=/.test(chainProxy);
