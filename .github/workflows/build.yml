@@ -12,7 +12,7 @@ jobs:
   build:
     if: |
       github.event_name == 'workflow_dispatch' || 
-      (github.event_name == 'schedule' && github.ref == 'refs/heads/main')
+      (github.event_name == 'schedule' && github.ref == 'refs/heads/select-proxyIP')
     runs-on: ubuntu-latest
 
     steps:
@@ -56,6 +56,6 @@ jobs:
           release_name: Release v${{ env.RELEASE_VERSION }}
           overwrite: true
           file_glob: true
-          prerelease: ${{ github.ref != 'refs/heads/main' }}
-          promote: ${{ github.ref == 'refs/heads/main' }}
+          prerelease: ${{ github.ref != 'refs/heads/select-proxyIP' }}
+          promote: ${{ github.ref == 'refs/heads/select-proxyIP' }}
           body: ${{ steps.read_release.outputs.RELEASE_BODY }}
