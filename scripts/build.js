@@ -133,16 +133,53 @@ async function buildWorker() {
     } else {
         const minifiedCode = await minifyCode(code.outputFiles[0].text);
         const obfuscationResult = obfs.obfuscate(minifiedCode.code, {
-            stringArrayThreshold: 1,
+            // 字符串加密和隐藏
+            stringArray: true,
             stringArrayEncoding: [
                 "rc4"
             ],
+            stringArrayThreshold: 1,
+            stringArrayWrappersCount: 2,
+            stringArrayWrappersChainedCalls: true,
+            stringArrayWrappersType: "function",
+            stringArrayRotate: true,
+            stringArrayShuffle: true,
+            
+            // 控制流保护 (适度使用以避免1101错误)
+            controlFlowFlattening: true,
+            controlFlowFlatteningThreshold: 0.3, // 进一步降低阈值以减少错误
+            
+            // 死代码注入
+            deadCodeInjection: true,
+            deadCodeInjectionThreshold: 0.1, // 进一步降低阈值以减少错误
+            
+            // 标识符混淆
+            renameGlobals: true,
+            // renameProperties: true, // 暂时禁用属性重命名以避免1101错误
+            renamePropertiesMode: "safe",
+            
+            // 其他混淆技术
             numbersToExpressions: true,
             transformObjectKeys: true,
-            renameGlobals: true,
-            deadCodeInjection: true,
-            deadCodeInjectionThreshold: 0.2,
-            target: "browser"
+            simplify: true,
+            splitStrings: true,
+            splitStringsChunkLength: 5, // 减少块长度以提高兼容性
+            
+            // 域名保护
+            domainLock: [],
+            
+            // 调试保护 (适度使用以避免1101错误)
+            debugProtection: false, // 禁用调试保护以避免1101错误
+            debugProtectionInterval: false,
+            
+            // 自我保护
+            selfDefending: true,
+            
+            // 严格模式
+            strict: false, // 禁用严格模式以提高兼容性
+            
+            // 目标环境
+            target: "browser-no-eval" // 使用更安全的目标环境以避免eval相关错误
         });
 
         console.log(`${success} Worker obfuscated successfuly!`);
