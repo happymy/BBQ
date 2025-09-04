@@ -49,10 +49,20 @@ jobs:
           # Set branch name variable, empty if main branch.
           if [ "$GITHUB_REF_NAME" = "main" ]; then
             echo "BRANCH_SUFFIX=" >> $GITHUB_OUTPUT
-            echo "FILE_PREFIX=" >> $GITHUB_OUTPUT
           else
             echo "BRANCH_SUFFIX= ($GITHUB_REF_NAME)" >> $GITHUB_OUTPUT
-            echo "FILE_PREFIX=$GITHUB_REF_NAME-" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rename files with branch prefix
+        run: |
+          if [ "$GITHUB_REF_NAME" != "main" ]; then
+            cd dist
+            for file in *; do
+              if [ -f "$file" ]; then
+                mv "$file" "${GITHUB_REF_NAME}-${file}"
+              fi
+            done
+            cd ..
           fi
 
       - name: Upload Release Assets
@@ -67,4 +77,3 @@ jobs:
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           promote: ${{ github.ref == 'refs/heads/main' }}
           body: ${{ steps.read_release.outputs.RELEASE_BODY }}
-          asset_name: ${{ steps.read_release.outputs.FILE_PREFIX }}*
