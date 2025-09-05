@@ -138,20 +138,20 @@ async function buildWorker() {
             stringArrayEncoding: [
                 "rc4"
             ],
-            stringArrayThreshold: 1,
-            stringArrayWrappersCount: 2,
-            stringArrayWrappersChainedCalls: true,
+            stringArrayThreshold: 0.75, // 降低阈值
+            stringArrayWrappersCount: 1, // 减少包装器数量
+            stringArrayWrappersChainedCalls: false, // 禁用链式调用
             stringArrayWrappersType: "function",
             stringArrayRotate: true,
             stringArrayShuffle: true,
             
             // 控制流保护 (适度使用以避免1101错误)
             controlFlowFlattening: true,
-            controlFlowFlatteningThreshold: 0.3, // 进一步降低阈值以减少错误
+            controlFlowFlatteningThreshold: 0.1, // 大幅降低阈值以减少错误
             
             // 死代码注入
             deadCodeInjection: true,
-            deadCodeInjectionThreshold: 0.1, // 进一步降低阈值以减少错误
+            deadCodeInjectionThreshold: 0.05, // 大幅降低阈值以减少错误
             
             // 标识符混淆
             renameGlobals: true,
@@ -159,11 +159,11 @@ async function buildWorker() {
             renamePropertiesMode: "safe",
             
             // 其他混淆技术
-            numbersToExpressions: true,
-            transformObjectKeys: true,
+            numbersToExpressions: false, // 禁用数字表达式转换
+            transformObjectKeys: false, // 禁用对象键转换
             simplify: true,
             splitStrings: true,
-            splitStringsChunkLength: 5, // 减少块长度以提高兼容性
+            splitStringsChunkLength: 10, // 增加块长度以提高兼容性
             
             // 域名保护
             domainLock: [],
@@ -173,7 +173,7 @@ async function buildWorker() {
             debugProtectionInterval: false,
             
             // 自我保护
-            selfDefending: true,
+            selfDefending: false, // 禁用自我保护以减少运行时错误
             
             // 严格模式
             strict: false, // 禁用严格模式以提高兼容性
