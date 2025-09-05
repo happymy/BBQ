@@ -53,6 +53,18 @@ jobs:
             echo "BRANCH_SUFFIX= ($GITHUB_REF_NAME)" >> $GITHUB_OUTPUT
           fi
 
+      - name: Rename files with branch prefix
+        run: |
+          if [ "$GITHUB_REF_NAME" != "main" ]; then
+            cd dist
+            for file in *; do
+              if [ -f "$file" ]; then
+                mv "$file" "${GITHUB_REF_NAME}-${file}"
+              fi
+            done
+            cd ..
+          fi
+
       - name: Upload Release Assets
         uses: svenstaro/upload-release-action@v2
         with:
