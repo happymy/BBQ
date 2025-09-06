@@ -1,4 +1,4 @@
-import { getConfigAddresses, extractWireguardParams, generateRemark, randomUpperCase, getRandomPath, isIPv6, isDomain, base64ToDecimal, getDomain } from './helpers';
+import { getConfigAddresses, extractWireguardParams, generateRemark, randomUpperCase, isIPv6, isDomain, base64ToDecimal, getDomain, generateWsPath, parseHostPort } from './helpers';
 import { getDataset } from '../kv/handlers';
 
 async function buildSingBoxDNS(isWarp) {
@@ -297,7 +297,6 @@ function buildSingBoxRoutingRules(isWarp) {
 
 function buildSingBoxVLOutbound(remark, address, port, host, sni, allowInsecure, isFragment) {
     const settings = globalThis.settings;
-    const path = `/${getRandomPath(16)}${settings.proxyIPs.length ? `/${btoa(settings.proxyIPs.join(','))}` : ''}`;
     const tls = globalThis.defaultHttpsPorts.includes(port) ? true : false;
 
     const outbound = {
@@ -307,6 +306,7 @@ function buildSingBoxVLOutbound(remark, address, port, host, sni, allowInsecure,
         server_port: port,
         uuid: globalThis.userID,
         network: "tcp",
+        tcp_fast_open: true,
         packet_encoding: "",
         transport: {
             early_data_header_name: "Sec-WebSocket-Protocol",
@@ -314,11 +314,9 @@ function buildSingBoxVLOutbound(remark, address, port, host, sni, allowInsecure,
             headers: {
                 Host: host
             },
-            path: path,
+            path: generateWsPath("vl"),
             type: "ws"
-        },
-        tcp_fast_open: true,
-        tcp_multi_path: true
+        }
     };
 
     if (tls) outbound.tls = {
@@ -338,7 +336,6 @@ function buildSingBoxVLOutbound(remark, address, port, host, sni, allowInsecure,
 
 function buildSingBoxTROutbound(remark, address, port, host, sni, allowInsecure, isFragment) {
     const settings = globalThis.settings;
-    const path = `/tr${getRandomPath(16)}${settings.proxyIPs.length ? `/${btoa(settings.proxyIPs.join(','))}` : ''}`;
     const tls = globalThis.defaultHttpsPorts.includes(port) ? true : false;
 
     const outbound = {
@@ -348,17 +345,16 @@ function buildSingBoxTROutbound(remark, address, port, host, sni, allowInsecure,
         server: address,
         server_port: port,
         network: "tcp",
+        tcp_fast_open: true,
         transport: {
             early_data_header_name: "Sec-WebSocket-Protocol",
             max_early_data: 2560,
             headers: {
                 Host: host
             },
-            path: path,
+            path: generateWsPath("tr"),
             type: "ws"
-        },
-        tcp_fast_open: true,
-        tcp_multi_path: true
+        }
     }
 
     if (tls) outbound.tls = {
@@ -378,12 +374,9 @@ function buildSingBoxTROutbound(remark, address, port, host, sni, allowInsecure,
 
 function buildSingBoxWarpOutbound(warpConfigs, remark, endpoint, chain) {
     const settings = globalThis.settings;
-    const ipv6Regex = /\[(.*?)\]/;
-    const portRegex = /[^:]*$/;
-    const endpointServer = endpoint.includes('[') ? endpoint.match(ipv6Regex)[1] : endpoint.split(':')[0];
-    const endpointPort = endpoint.includes('[') ? +endpoint.match(portRegex)[0] : +endpoint.split(':')[1];
-    const server = chain ? "162.159.192.1" : endpointServer;
-    const port = chain ? 2408 : endpointPort;
+    const { host, port } = parseHostPort(endpoint);
+    const server = chain ? "162.159.192.1" : host;
+    const finalPort = chain ? 2408 : port;
 
     const {
         warpIPv6,
@@ -403,7 +396,7 @@ function buildSingBoxWarpOutbound(warpConfigs, remark, endpoint, chain) {
         peers: [
             {
                 address: server,
-                port: port,
+                port: finalPort,
                 public_key: publicKey,
                 reserved: base64ToDecimal(reserved),
                 allowed_ips: [
@@ -712,7 +705,8 @@ const singboxConfigTemp = {
         {
             type: "selector",
             tag: "✅ Selector",
-            outbounds: []
+            outbounds: [],
+            interrupt_exist_connections: false
         },
         {
             type: "direct",
