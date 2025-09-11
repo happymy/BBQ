@@ -1,5 +1,5 @@
 # ⚙️ Bug fixes and Improvements
 
-- Fixed missing IPv6 configs #1000
-- Fixed WorkerLess malfunctioning with Fake DNS enabled
-- Refactored
+- Refactored, much less worker Error rate
+- Fixed Clash NAT64 #1016
+- Added Xray TFO

@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { randomBytes } from 'tweetnacl';
 import { respond } from '../helpers/helpers';
+import { globalConfig } from '../helpers/init';
 
 export async function generateJWTToken(request, env) {
     if (request.method !== 'POST') return await respond(false, 405, 'Method not allowed.');
@@ -8,12 +8,14 @@ export async function generateJWTToken(request, env) {
     const savedPass = await env.kv.get('pwd');
     if (password !== savedPass) return await respond(false, 401, 'Wrong password.');
     let secretKey = await env.kv.get('secretKey');
+
     if (!secretKey) {
         secretKey = generateSecretKey();
         await env.kv.put('secretKey', secretKey);
     }
+    
     const secret = new TextEncoder().encode(secretKey);
-    const jwtToken = await new SignJWT({ userID: globalThis.userID })
+    const jwtToken = await new SignJWT({ userID: globalConfig.userID })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('24h')
@@ -26,8 +28,9 @@ export async function generateJWTToken(request, env) {
 }
 
 function generateSecretKey() {
-    const key = randomBytes(32);
-    return Array.from(key, byte => byte.toString(16).padStart(2, '0')).join('');
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export async function Authenticate(request, env) {

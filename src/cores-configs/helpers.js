@@ -1,3 +1,5 @@
+import { globalConfig, httpConfig } from "../helpers/init";
+
 export function isDomain(address) {
     if (!address) return false;
     const domainPattern = /^(?!-)(?:[A-Za-z0-9-]{1,63}.)+[A-Za-z]{2,}$/;
@@ -5,7 +7,7 @@ export function isDomain(address) {
 }
 
 export async function resolveDNS(domain, onlyIPv4 = false) {
-    const dohBaseURL = `${globalThis.dohURL}?name=${encodeURIComponent(domain)}`;
+    const dohBaseURL = `${globalConfig.dohURL}?name=${encodeURIComponent(domain)}`;
     const dohURLs = {
         ipv4: `${dohBaseURL}&type=A`,
         ipv6: `${dohBaseURL}&type=AAAA`,
@@ -35,10 +37,10 @@ async function fetchDNSRecords(url, recordType) {
 }
 
 export async function getConfigAddresses(isFragment) {
-    const { settings, hostName } = globalThis;
-    const resolved = await resolveDNS(hostName, !settings.VLTRenableIPv6);
+    const settings = globalThis.settings;
+    const resolved = await resolveDNS(httpConfig.hostName, !settings.VLTRenableIPv6);
     const addrs = [
-        hostName,
+        httpConfig.hostName,
         'www.speedtest.net',
         ...resolved.ipv4,
         ...resolved.ipv6.map((ip) => `[${ip}]`),
@@ -95,7 +97,7 @@ export function generateWsPath(protocol) {
         junk: getRandomString(8, 16),
         protocol: protocol,
         mode: settings.proxyIPMode,
-        panelIPs: settings.proxyIPMode === 'proxyip' ? settings.proxyIPs : settings.nat64Prefixes
+        panelIPs: settings.proxyIPMode === 'proxyip' ? settings.proxyIPs : settings.prefixes
     };
 
     const encodedConfig = btoa(JSON.stringify(config));
