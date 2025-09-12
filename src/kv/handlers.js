@@ -1,5 +1,4 @@
 import { getDomain, resolveDNS } from '../cores-configs/helpers';
-import { httpConfig } from '../helpers/init';
 import { fetchWarpConfigs } from '../protocols/warp';
 
 export async function getDataset(request, env) {
@@ -19,7 +18,7 @@ export async function getDataset(request, env) {
         warpConfigs = configs;
     }
 
-    if (httpConfig.panelVersion !== proxySettings.panelVersion) proxySettings = await updateDataset(request, env);
+    if (globalThis.panelVersion !== proxySettings.panelVersion) proxySettings = await updateDataset(request, env);
     return { proxySettings, warpConfigs }
 }
 
@@ -68,7 +67,7 @@ export async function updateDataset(request, env) {
         VLTRFakeDNS: populateField('VLTRFakeDNS', false),
         proxyIPMode: populateField('proxyIPMode', 'proxyip'),
         proxyIPs: populateField('proxyIPs', []),
-        prefixes: populateField('prefixes', []),
+        nat64Prefixes: populateField('nat64Prefixes', []),
         outProxy: populateField('outProxy', ''),
         outProxyParams: populateField('outProxy', {}, field => extractChainProxyParams(field)),
         cleanIPs: populateField('cleanIPs', []),
@@ -131,7 +130,7 @@ export async function updateDataset(request, env) {
         amneziaNoiseCount: populateField('amneziaNoiseCount', 5),
         amneziaNoiseSizeMin: populateField('amneziaNoiseSizeMin', 50),
         amneziaNoiseSizeMax: populateField('amneziaNoiseSizeMax', 100),
-        panelVersion: httpConfig.panelVersion
+        panelVersion: globalThis.panelVersion
     };
 
     try {

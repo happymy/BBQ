@@ -1,4 +1,3 @@
-import { globalConfig, httpConfig } from '../helpers/init';
 import { getConfigAddresses, generateRemark, randomUpperCase, base64EncodeUnicode, generateWsPath } from './helpers';
 
 export async function getNormalConfigs(isFragment) {
@@ -8,17 +7,17 @@ export async function getNormalConfigs(isFragment) {
     const Addresses = await getConfigAddresses(isFragment);
 
     const buildConfig = (protocol, addr, port, host, sni, remark) => {
-        const isTLS = httpConfig.defaultHttpsPorts.includes(port);
+        const isTLS = globalThis.defaultHttpsPorts.includes(port);
         const security = isTLS ? 'tls' : 'none';
         
         const config = new URL(`${protocol}://config`);
         let pathProtocol = 'vl';
 
         if (protocol === atob('dmxlc3M=')) {
-            config.username = globalConfig.userID;
+            config.username = globalThis.userID;
             config.searchParams.append('encryption', 'none');
         } else {
-            config.username = globalConfig.TrPass;
+            config.username = globalThis.TRPassword;
             pathProtocol = 'tr';
         }
 
@@ -30,7 +29,7 @@ export async function getNormalConfigs(isFragment) {
         config.searchParams.append('security', security);
         config.hash = remark;
 
-        if (httpConfig.client === 'singbox') {
+        if (globalThis.client === 'singbox') {
             config.searchParams.append('eh', 'Sec-WebSocket-Protocol');
             config.searchParams.append('ed', '2560');
             config.searchParams.append('path', path);
@@ -43,7 +42,7 @@ export async function getNormalConfigs(isFragment) {
             config.searchParams.append('fp', settings.fingerprint);
             config.searchParams.append('alpn', 'http/1.1');
 
-            if (httpConfig.client === 'hiddify-frag') {
+            if (globalThis.client === 'hiddify-frag') {
                 config.searchParams.append('fragment', `${settings.fragmentLengthMin}-${settings.fragmentLengthMax},${settings.fragmentIntervalMin}-${settings.fragmentIntervalMax},hellotls`);
             }
         }
@@ -55,8 +54,8 @@ export async function getNormalConfigs(isFragment) {
         Addresses.forEach(addr => {
             const isCustomAddr = settings.customCdnAddrs.includes(addr) && !isFragment;
             const configType = isCustomAddr ? 'C' : isFragment ? 'F' : '';
-            const sni = isCustomAddr ? settings.customCdnSni : randomUpperCase(httpConfig.hostName);
-            const host = isCustomAddr ? settings.customCdnHost : httpConfig.hostName;
+            const sni = isCustomAddr ? settings.customCdnSni : randomUpperCase(globalThis.hostName);
+            const host = isCustomAddr ? settings.customCdnHost : globalThis.hostName;
 
             const VLRemark = generateRemark(proxyIndex, port, addr, settings.cleanIPs, atob('VkxFU1M='), configType);
             const TRRemark = generateRemark(proxyIndex, port, addr, settings.cleanIPs, atob('VHJvamFu'), configType);

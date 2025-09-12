@@ -1,5 +1,6 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 import { isValidUUID } from '../helpers/helpers';
-import { globalConfig } from '../helpers/init';
 import { handleTCPOutBound, makeReadableWebSocketStream, WS_READY_STATE_OPEN } from './common';
 
 export async function VlOverWSHandler(request) {
@@ -45,7 +46,7 @@ export async function VlOverWSHandler(request) {
                 rawDataIndex,
                 VLVersion = new Uint8Array([0, 0]),
                 isUDP,
-            } = processVLHeader(chunk, globalConfig.userID);
+            } = processVLHeader(chunk, globalThis.userID);
             
             address = addressRemote;
             portWithRandomLog = `${portRemote}--${Math.random()} ${isUDP ? "udp " : "tcp "} `;
@@ -265,7 +266,7 @@ async function handleUDPOutBound(webSocket, VLResponseHeader, log) {
             new WritableStream({
                 async write(chunk) {
                     const resp = await fetch(
-                        globalConfig.dohURL, // dns server url
+                        dohURL, // dns server url
                         {
                             method: "POST",
                             headers: {

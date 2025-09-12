@@ -1,6 +1,5 @@
 import { connect } from 'cloudflare:sockets';
 import { isIPv4, parseHostPort, resolveDNS } from '../cores-configs/helpers';
-import { wsConfig } from '../helpers/init';
 
 export const WS_READY_STATE_OPEN = 1;
 const WS_READY_STATE_CLOSING = 2;
@@ -31,34 +30,26 @@ export async function handleTCPOutBound(
 
     async function retry() {
         let tcpSocket;
-        const { proxyMode, panelIPs } = wsConfig;
-        const getRandomValue = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        const parseIPs = (value) => value ? value.split(',').map(val => val.trim()).filter(Boolean) : undefined;
+        const mode = globalThis.proxyMode;
 
-        if (proxyMode === 'proxyip') {
+        if (mode === 'proxyip') {
             log(`direct connection failed, trying to use Proxy IP for ${addressRemote}`);
             try {
-                const proxyIPs = parseIPs(wsConfig.envProxyIPs) ||  wsConfig.defaultProxyIPs;
-                const ips = panelIPs.length ? panelIPs : proxyIPs;
-                const proxyIP = getRandomValue(ips);
-                const { host, port } = parseHostPort(proxyIP);
+                const { host, port } = parseHostPort(globalThis.proxyIP);
                 tcpSocket = await connectAndWrite(host || addressRemote, port || portRemote);
             } catch (error) {
                 console.error('Proxy IP connection failed:', error);
                 webSocket.close(1011, 'Proxy IP connection failed: ' + error.message);
             }
 
-        } else if (proxyMode === 'prefix') {
-            log(`direct connection failed, trying to generate dynamic prefix for ${addressRemote}`);
+        } else if (mode === 'nat64') {
+            log(`direct connection failed, trying to generate dynamic NAT64 IP for ${addressRemote}`);
             try {
-                const prefixes = parseIPs(wsConfig.envPrefixes) || wsConfig.defaultPrefixes;
-                const ips = panelIPs.length ? panelIPs : prefixes;
-                const prefix = getRandomValue(ips);
-                const dynamicProxyIP = await getDynamicProxyIP(addressRemote, prefix);
+                const dynamicProxyIP = await getDynamicProxyIP(addressRemote, globalThis.proxyIP);
                 tcpSocket = await connectAndWrite(dynamicProxyIP, portRemote);
             } catch (error) {
-                console.error('Prefix connection failed:', error);
-                webSocket.close(1011, 'Prefix connection failed: ' + error.message);
+                console.error('NAT64 connection failed:', error);
+                webSocket.close(1011, 'NAT64 connection failed: ' + error.message);
             }
         }
 
@@ -210,7 +201,7 @@ export function safeCloseWebSocket(socket) {
     }
 }
 
-async function getDynamicProxyIP(address, prefix) {
+async function getDynamicProxyIP(address, nat64Prefix) {
     let finalAddress = address;
     if (!isIPv4(address)) {
         const { ipv4 } = await resolveDNS(address, true);
@@ -221,10 +212,10 @@ async function getDynamicProxyIP(address, prefix) {
         }
     }
 
-    return convertToNAT64IPv6(finalAddress, prefix);
+    return convertToNAT64IPv6(finalAddress, nat64Prefix);
 }
 
-function convertToNAT64IPv6(ipv4Address, prefix) {
+function convertToNAT64IPv6(ipv4Address, nat64Prefix) {
     const parts = ipv4Address.split('.');
     if (parts.length !== 4) {
         throw new Error('Invalid IPv4 address');
@@ -238,7 +229,7 @@ function convertToNAT64IPv6(ipv4Address, prefix) {
         return num.toString(16).padStart(2, '0');
     });
 
-    const match = prefix.match(/^\[([0-9A-Fa-f:]+)\]$/);
+    const match = nat64Prefix.match(/^\[([0-9A-Fa-f:]+)\]$/);
     if (match) {
         return `[${match[1]}${hex[0]}${hex[1]}:${hex[2]}${hex[3]}]`;
     }

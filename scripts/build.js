@@ -53,8 +53,7 @@ async function processHtmlPages() {
             minifyCSS: true
         });
 
-        // const encodedHtml = Buffer.from(minifiedHtml, 'utf8').toString('base64');
-        const encodedHtml = stringToHex(minifiedHtml);
+        const encodedHtml = Buffer.from(minifiedHtml, 'utf8').toString('base64');
         result[dir] = JSON.stringify(encodedHtml);
     }
 
@@ -170,10 +169,3 @@ buildWorker().catch(err => {
     console.error(`${failure} Build failed:`, err);
     process.exit(1);
 });
-
-function stringToHex(str) {
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(str);
-    return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
-}
-
